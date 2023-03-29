@@ -2,26 +2,28 @@ import { Octokit } from "@octokit/rest";
 import dotenv from "dotenv";
 const yargs = require('yargs')
 
-const main = async () => {
+const collectResults = async() => {
     dotenv.config();
     const { endpoint, token } = acceptCommandLineArgs();
-    const octokit = new Octokit({
+    const octokit: Octokit = new Octokit({
         auth: token,
         baseUrl: endpoint
     });
-    const promises = Array.from({ length: 100 }, () => run(octokit));
-    const results = await Promise.all(promises);
-    console.log(results);
+    const promises: Promise<string>[] = Array.from({ length: 100 }, () => runApiRequest(octokit));
+    return Promise.all(promises);
 };
 
-// The main entrypoint for the application
-main();
+const run = async () => {
+    console.log('Collecting results...');
+    const results: string[] = await collectResults();
+    console.log(results);
+    console.log('Done');
+  };
 
-async function run(octokit: Octokit) {
-    const result = (await octokit.users.getAuthenticated()).data.login;
+async function runApiRequest(octokit: Octokit) {
+    const result: string = (await octokit.users.getAuthenticated()).data.login;
     return result;
 }
-
 
 export function acceptCommandLineArgs(): { endpoint: string, token: string } {
     const argv = yargs.default(process.argv.slice(2))
@@ -42,3 +44,6 @@ export function acceptCommandLineArgs(): { endpoint: string, token: string } {
         }).argv;
     return { endpoint: argv.endpoint, token: argv.token };
 }
+
+// The main entrypoint for the application
+run();
